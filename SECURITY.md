@@ -1,0 +1,1 @@
+Please responsibly disclose any security issues to security@chanzuckerberg.com

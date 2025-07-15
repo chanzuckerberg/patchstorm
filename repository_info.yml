@@ -2,7 +2,7 @@
 # These values are set by the user when creating the repository.
 # Please update the values below if they are incorrect.
 
-Purpose: Open Source,
+Purpose: Internal tooling,
 Initiative: Central,
-Team: Infra/Sec Eng,
-Slack Channel: org-infra-eng,
+Team: Security Engineering,
+Slack Channel: help-infra,

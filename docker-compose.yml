@@ -1,0 +1,83 @@
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  dind:
+    image: docker
+    privileged: true
+    command: ["--host=unix:///var/run/docker.sock"]
+    healthcheck:
+      test: [ "CMD-SHELL", "docker ps" ]
+      interval: 5s
+    volumes:
+      - docker_storage:/var/lib/docker
+      - docker_sock:/var/run/
+      - ./artifacts:/app/artifacts  # we need to mount this in because volume mounts from the worker mount from this container
+      # figure out where images are built to expand the storage space allocated to inner container
+
+  worker:
+    build: .
+    volumes:
+      - .:/app
+      - ./artifacts:/app/artifacts
+      - docker_sock:/var/run
+      - .env.aws:/secrets/.env.aws
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env.aws
+      - .env.github
+      - .env.configs
+    secrets:
+      - github_token
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GITHUB_TOKEN_FILE=/run/secrets/github_token
+    command: celery -A tasks.celery worker --loglevel=info --autoscale=8,1
+
+  flower:
+    build: .
+    volumes:
+      - .:/app
+      - ./artifacts:/app/artifacts
+    depends_on:
+      redis:
+        condition: service_healthy
+    secrets:
+      - github_token
+    environment:
+      - GIT_NAME=blank
+      - GIT_EMAIL=blank
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GITHUB_TOKEN_FILE=/run/secrets/github_token
+    command: celery -A tasks.celery flower --broker=redis://redis:6379/0 --port=5555
+    ports:
+      - "5555:5555"
+
+  build_agent_imgs:
+    image: docker
+    depends_on:
+      dind:
+        condition: service_healthy
+    volumes:
+      - ./agent_images:/agent_images
+      - docker_sock:/var/run
+    command: sh /agent_images/build_img.sh
+
+volumes:
+  docker_sock:
+  docker_storage:
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN

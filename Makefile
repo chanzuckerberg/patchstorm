@@ -13,7 +13,8 @@ help:
 
 # Start the Docker Compose stack
 up: .env.github
-	@if [ -f ./myscript.sh ]; then ./custom_setup.sh; fi
+	@if [ -f ./custom_setup.sh ]; then ./custom_setup.sh; fi
+	mkdir -p artifacts
 	touch .env.aws
 	@gh auth status
 	@echo "Starting Docker Compose stack..."

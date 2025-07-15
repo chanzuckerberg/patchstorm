@@ -25,15 +25,6 @@ class TestCloneAndRunPrompt(unittest.TestCase):
             skip_pr=True,
             dry=False
         )
-        
-        # Set environment variables needed for the test
-        os.environ['GIT_NAME'] = 'Test User'
-        os.environ['GIT_EMAIL'] = 'test@example.com'
-        os.environ['GITHUB_TOKEN_FILE'] = os.path.join(self.test_dir, 'token_file')
-        
-        # Create a token file
-        with open(os.environ['GITHUB_TOKEN_FILE'], 'w') as f:
-            f.write('test_token')
     
     def tearDown(self):
         # Clean up the temp directory
@@ -45,7 +36,7 @@ class TestCloneAndRunPrompt(unittest.TestCase):
         # Configure the mocks
         repo_name = "test/repo"
         run_id = "test_run_id"
-        repo_dir = f"/app/artifacts/{repo_name}_{run_id}"
+        repo_dir = f"/tmp/artifacts/{repo_name}_{run_id}"
         
         # Instead of cloning a real repo let's create a new directory, run git init, put in a fake README, and commit
         def mock_clone_implementation(repo_name, repo_dir):

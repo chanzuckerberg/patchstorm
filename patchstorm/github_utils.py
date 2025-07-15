@@ -4,11 +4,7 @@ from github import Github
 from github import Auth
 from typing import Dict, List
 
-
-with open(os.environ['GITHUB_TOKEN_FILE'], 'r') as f:
-    GITHUB_TOKEN = f.read().strip()
-
-GITHUB_ORGANIZATION = os.environ['GITHUB_ORGANIZATION']
+from patchstorm.config import GITHUB_ORGANIZATION, GITHUB_TOKEN
 
 
 def get_repos(repos=None, search_query=None):

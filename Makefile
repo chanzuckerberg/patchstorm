@@ -13,7 +13,7 @@ help:
 
 # Start the Docker Compose stack
 up: .env.github
-	@if [ -f ./custom_setup.sh ]; then ./custom_setup.sh; fi
+	@if [ -f ./custom_setup.sh ]; then bash custom_setup.sh; fi
 	mkdir -p artifacts
 	touch .env.aws
 	@gh auth status
@@ -31,7 +31,7 @@ down: .env.github
 # Restart the worker
 restart: .env.github
 	@echo "Restarting worker..."
-	@if [ -f ./myscript.sh ]; then ./custom_setup.sh; fi
+	@if [ -f ./myscript.sh ]; then bash custom_setup.sh; fi
 	docker-compose restart worker
 	@echo "Services restarted."
 
@@ -61,7 +61,7 @@ logs-worker:
 	docker-compose logs -f worker
 
 test:
-	docker compose exec worker pytest --ignore=artifacts --verbose
+	GITHUB_TOKEN=test docker compose run -e TEST_MODE=true worker pytest --ignore=artifacts --verbose
 
 openflower:
 	open http://localhost:5555

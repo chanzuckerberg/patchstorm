@@ -9,6 +9,8 @@ from typing import Optional, Set, Any, Dict, Union
 
 import requests
 from github import Auth, Github
+
+from patchstorm.config import GIT_NAME, GIT_EMAIL, GITHUB_PROJECT, GITHUB_TOKEN, ARTIFACTS_DIR
 from tasks.celery import app
 
 # Import RunAgentConfig class
@@ -18,14 +20,6 @@ from tasks.cmdline_utils import run_bash_cmd
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from patchstorm.run_agent_config import RunAgentConfig
-
-
-# TODO move to config file
-GIT_NAME = os.environ['GIT_NAME']
-GIT_EMAIL = os.environ['GIT_EMAIL']
-GITHUB_PROJECT = os.environ['GITHUB_PROJECT']
-with open(os.environ['GITHUB_TOKEN_FILE'], 'r') as f:
-    GITHUB_TOKEN = f.read().strip()
 
 
 @app.task
@@ -53,7 +47,7 @@ claude --allowedTools "Bash,Edit,Replace" --output-format stream-json --verbose 
         for cmd in config.prompts[1:]:
             script += f'claude --allowedTools "Bash,Edit,Replace" --output-format stream-json --verbose -p --continue "{cmd}"\n'
         print(script)
-        script_filename = f"/app/artifacts/{run_id}_script.sh"
+        script_filename = f"{ARTIFACTS_DIR}/{run_id}_script.sh"
         with open(script_filename, 'w') as f:
             f.write(script)
         cmd = f"""docker run -v {repo_dir}:/repo -v {script_filename}:/claude_cmds.sh --workdir /repo --env-file /secrets/.env.aws claude_code bash /claude_cmds.sh"""
@@ -76,7 +70,7 @@ def clone_and_run_prompt(repo_name, config):
         config = RunAgentConfig.from_json(config)
     run_id = uuid.uuid4().hex
     print(f"beginning run {run_id}")
-    repo_dir = f"/app/artifacts/{repo_name}_{run_id}"
+    repo_dir = f"{ARTIFACTS_DIR}/{repo_name}_{run_id}"
     _clone_repo(repo_name, repo_dir)
 
     # TODO: there is no quote escaping or anything
@@ -89,7 +83,7 @@ def clone_and_run_prompt(repo_name, config):
 
     output = _run_agent(config, repo_dir, run_id)
     print(output)
-    with open(f'/app/artifacts/{run_id}_output.txt', 'w') as f:
+    with open(f'{ARTIFACTS_DIR}/{run_id}_output.txt', 'w') as f:
         f.write(output)
     # at this point, the PR is done
 

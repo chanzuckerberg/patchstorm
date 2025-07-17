@@ -13,6 +13,7 @@ class RunAgentConfig:
     skip_pr: bool = False
     dry: bool = False
     reviewers: Set[str] = None
+    draft: bool = False
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert the config to a dictionary."""

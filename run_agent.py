@@ -40,7 +40,7 @@ def _load_task_definition_from_str(yaml_content):
         raise ValueError(f"Error loading task definition: {str(e)}")
 
 
-def create_config_from_task_definition(task_def, repos=None, search_query=None, dry=None, skip_pr=None, reviewers=None) -> RunAgentConfig:
+def create_config_from_task_definition(task_def, repos=None, search_query=None, dry=None, skip_pr=None, reviewers=None, draft=None) -> RunAgentConfig:
     """
     Create a RunAgentConfig from a task definition dictionary.
     
@@ -51,6 +51,7 @@ def create_config_from_task_definition(task_def, repos=None, search_query=None, 
         dry (bool, optional): Force dry run mode. Overrides task definition if True.
         skip_pr (bool, optional): Skip creating PR. Overrides task definition if True.
         reviewers (str, optional): Comma-separated list of GitHub usernames to add as reviewers.
+        draft (bool, optional): Whether to create PRs as drafts. Overrides task definition if provided.
         
     Returns:
         RunAgentConfig: The configuration object.
@@ -94,6 +95,7 @@ def create_config_from_task_definition(task_def, repos=None, search_query=None, 
     # Command line flags take precedence over task definition
     use_dry = dry if dry is not None else task_def.get('dry', False)
     use_skip_pr = skip_pr if skip_pr is not None else task_def.get('skip_pr', False)
+    use_draft = draft if draft is not None else task_def.get('draft', False)
     
     # Handle reviewers
     reviewers_set = set()
@@ -112,7 +114,8 @@ def create_config_from_task_definition(task_def, repos=None, search_query=None, 
         repos=repo_set,
         skip_pr=use_skip_pr,
         dry=use_dry,
-        reviewers=reviewers_set
+        reviewers=reviewers_set,
+        draft=use_draft
     )
 
 
@@ -153,7 +156,8 @@ def create_config_from_args(args):
         reviewers=reviewers,
         repos=repos,
         skip_pr=args.skip_pr,
-        dry=args.dry
+        dry=args.dry,
+        draft=args.draft if args.draft is not None else False
     )
 
 
@@ -171,10 +175,12 @@ if __name__ == "__main__":
                         help="run on all repos that have this github code search query, eg --repo-query 'path:.github language:YAML tibdex/github-app-token'")
     parser.add_argument("--dry", action="store_true", help="Dry run, do not actually run the task")
     parser.add_argument("--skip-pr", action="store_true", help="Skip pushing and creating a pull request")
+    parser.add_argument("--draft", action="store_true", help="Create pull request as draft. Defaults to false.")
     parser.add_argument("--agent-provider", choices=("codex", "claude_code"), default="codex",
                         help="Which agent to use for the task. Defaults to codex.")
     parser.add_argument("--reviewers", type=str, default="",
                         help="Comma separated list of GitHub usernames to add as reviewers to the PR.")
+    parser.set_defaults(draft=None)
 
     args = parser.parse_args()
     
@@ -188,7 +194,8 @@ if __name__ == "__main__":
                 search_query=args.search_query,
                 dry=args.dry,
                 skip_pr=args.skip_pr,
-                reviewers=args.reviewers
+                reviewers=args.reviewers,
+                draft=args.draft
             )
         elif args.prompt:
             config = create_config_from_args(args)
@@ -202,7 +209,8 @@ if __name__ == "__main__":
                 search_query=args.search_query,
                 dry=args.dry,
                 skip_pr=args.skip_pr,
-                reviewers=args.reviewers
+                reviewers=args.reviewers,
+                draft=args.draft
             )
     except ValueError as e:
         parser.error(str(e))

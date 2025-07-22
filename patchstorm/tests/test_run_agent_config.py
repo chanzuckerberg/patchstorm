@@ -11,7 +11,8 @@ class TestRunAgentConfig(unittest.TestCase):
             agent_provider="claude_code",
             repos={"original_repo"},
             skip_pr=True,
-            dry=False
+            dry=False,
+            draft=True
         )
         
         # Convert to JSON and back to a new config
@@ -26,6 +27,7 @@ class TestRunAgentConfig(unittest.TestCase):
         self.assertEqual(new_config.skip_pr, original_config.skip_pr)
         self.assertEqual(new_config.dry, original_config.dry)
         self.assertEqual(new_config.reviewers, original_config.reviewers)
+        self.assertEqual(new_config.draft, original_config.draft)
         
     def test_serialization_with_reviewers(self):
         original_config = RunAgentConfig(
@@ -35,7 +37,8 @@ class TestRunAgentConfig(unittest.TestCase):
             repos={"test_repo"},
             skip_pr=False,
             dry=True,
-            reviewers={"user1", "user2"}
+            reviewers={"user1", "user2"},
+            draft=False
         )
         
         # Convert to JSON and back to a new config
@@ -50,6 +53,7 @@ class TestRunAgentConfig(unittest.TestCase):
         self.assertEqual(new_config.skip_pr, original_config.skip_pr)
         self.assertEqual(new_config.dry, original_config.dry)
         self.assertEqual(new_config.reviewers, original_config.reviewers)
+        self.assertEqual(new_config.draft, original_config.draft)
         
     def test_to_dict_serializes_reviewers(self):
         config = RunAgentConfig(
@@ -57,7 +61,8 @@ class TestRunAgentConfig(unittest.TestCase):
             prompts=["Test prompt"],
             agent_provider="codex",
             repos={"test_repo"},
-            reviewers={"user1", "user2"}
+            reviewers={"user1", "user2"},
+            draft=True
         )
         
         config_dict = config.to_dict()

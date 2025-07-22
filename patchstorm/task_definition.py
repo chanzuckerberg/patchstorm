@@ -38,6 +38,9 @@ properties:
   search_query:
     type: string
     description: GitHub search query to find repositories.
+  draft:
+    type: boolean
+    description: Whether to create pull requests as drafts. Defaults to false if not specified.
 """
 
 SCHEMA = yaml.safe_load(SCHEMA_YAML)

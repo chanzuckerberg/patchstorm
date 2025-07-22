@@ -67,9 +67,7 @@ make clean
 The simplest way to issue a coding prompt to an agentic AI that will clone down a repo, perform changes, and commit any changes:
 
 ```
-docker compose exec worker python run_agent.py --prompt "PROMPT HERE" --commit-msg "COMMIT MESSAGE HERE"
-# Or pass in a prompt using a file
-cat prompt.txt | docker compose exec -T worker python run_agent.py --commit-msg "COMMIT MESSAGE HERE"
+docker compose exec worker python run_agent.py --prompt "PROMPT HERE" --commit-msg "COMMIT MESSAGE HERE" --repos org/repo1
 # See available options with:
 docker compose exec worker python run_agent.py --help
 ```

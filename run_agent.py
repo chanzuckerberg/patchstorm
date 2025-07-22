@@ -229,9 +229,10 @@ if __name__ == "__main__":
                 print(f"Skipping {repo} because a PR already exists.")
             continue
         filtered_repos.add(repo)
-    
-    print(f"running against {len(filtered_repos)} repos: {filtered_repos}")
-    print("submitting task to celery...")
+
+    print(f"running against {len(filtered_repos)} repo(s):")
+    for repo in filtered_repos:
+        print(f"  {repo}")
 
     for repo in filtered_repos:
         if config.dry:
@@ -239,6 +240,4 @@ if __name__ == "__main__":
             continue
         clone_and_run_prompt.delay(repo, config.to_json())
 
-    print("\ntasks submitted")
-    print("check worker logs for results:")
-    print("make logs-worker")
+    print("Tasks submitted. Run make logs-worker to check agent logs")

@@ -128,7 +128,10 @@ def clone_and_run_prompt(repo_name, config):
         project = ''
         if GITHUB_PROJECT:
             project = f" --project '{GITHUB_PROJECT}'"
-        gh_cmd = f"""cd {repo_dir} && GITHUB_TOKEN={GITHUB_TOKEN} gh pr create --head  bot/{run_id} --title "{config.commit_msg}" --draft {project} --body '{body}' """
+        
+        # Add --draft flag only if config.draft is True
+        draft_flag = "--draft" if config.draft else ""
+        gh_cmd = f"""cd {repo_dir} && GITHUB_TOKEN={GITHUB_TOKEN} gh pr create --head  bot/{run_id} --title "{config.commit_msg}" {draft_flag} {project} --body '{body}' """
         if config.reviewers:
             gh_cmd += f" --reviewer {','.join(config.reviewers)}"
         run_bash_cmd(gh_cmd)

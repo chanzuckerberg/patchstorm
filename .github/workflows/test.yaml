@@ -1,0 +1,8 @@
+name: test workflow
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  check-open-source:
+    uses: chanzuckerberg/shared-infra/.github/workflows/check_open_source.yml@CCIE-4853

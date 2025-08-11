@@ -42,10 +42,10 @@ def _run_agent(config, repo_dir, run_id):
         # generate script with all commands
         script = f"""#!/bin/bash
 set -ex
-claude --allowedTools "Bash,Edit,Replace" --output-format stream-json --verbose -p "{config.prompts[0]}"
+claude --dangerously-skip-permissions --output-format stream-json --verbose -p "{config.prompts[0]}"
 """
         for cmd in config.prompts[1:]:
-            script += f'claude --allowedTools "Bash,Edit,Replace" --output-format stream-json --verbose -p --continue "{cmd}"\n'
+            script += f'claude --dangerously-skip-permissions --output-format stream-json --verbose -p --continue "{cmd}"\n'
         print(script)
         script_filename = f"{ARTIFACTS_DIR}/{run_id}_script.sh"
         with open(script_filename, 'w') as f:
@@ -110,7 +110,10 @@ def clone_and_run_prompt(repo_name, config):
         stats['cost_usd'] = round(stats['total_cost_usd'], 2)
     stats['agent'] = config.agent_provider
 
-    diff, status = run_bash_cmd(f"git -C {repo_dir} diff --exit-code", raise_on_error=False)
+    branch = f"bot/{run_id}"
+    run_bash_cmd(f"git -C {repo_dir} checkout -b {branch}")
+    run_bash_cmd(f"git -C {repo_dir} add {repo_dir}")
+    diff, status = run_bash_cmd(f"git -C {repo_dir} diff HEAD --exit-code", raise_on_error=False)
     print(f"diff: {diff}")
     if config.skip_pr:
         print("Skipping PR creation")
@@ -118,12 +121,10 @@ def clone_and_run_prompt(repo_name, config):
     if status != 0:
         print("Diff found, committing changes")
         # TODO: there is no quote escaping or anything
-        branch = f"bot/{run_id}"
         body = f"This is an AI generated PR.\n\nAgent: {stats['agent']}\nExecution time: {stats['duration_ms']} ms\nCost: ${stats['cost_usd']}"
         run_bash_cmd(f"git config --global user.email {GIT_EMAIL}")
         run_bash_cmd(f"git config --global user.name '{GIT_NAME}'")
-        run_bash_cmd(f"git -C {repo_dir} checkout -b {branch}")
-        run_bash_cmd(f"git -C {repo_dir} commit -a -m '{config.commit_msg}'")
+        run_bash_cmd(f"git -C {repo_dir} commit -m '{config.commit_msg}'")
         run_bash_cmd(f"git -C {repo_dir} push origin {branch}")
         project = ''
         if GITHUB_PROJECT:

@@ -71,8 +71,13 @@ services:
         condition: service_healthy
     volumes:
       - ./agent_images:/agent_images
+      - ./mcp:/mcp
       - docker_sock:/var/run
     command: sh /agent_images/build_img.sh
+    secrets:
+      - github_token
+    environment:
+      - GITHUB_TOKEN_FILE=/run/secrets/github_token
 
 volumes:
   docker_sock:

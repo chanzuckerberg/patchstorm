@@ -42,15 +42,19 @@ def _run_agent(config, repo_dir, run_id):
         # generate script with all commands
         script = f"""#!/bin/bash
 set -ex
+git config --global user.email {GIT_EMAIL}
+git config --global user.name '{GIT_NAME}'
+claude mcp add --transport http patchstorm http://patchstorm_mcp:8000/mcp/
+claude mcp add --transport http github https://api.githubcopilot.com/mcp -H "X-MCP-Toolsets: repos,pull_requests,issues" -H "X-MCP-Readonly: true" -H "Authorization: Bearer {GITHUB_TOKEN}"
 claude --dangerously-skip-permissions --output-format stream-json --verbose -p "{config.prompts[0]}"
 """
         for cmd in config.prompts[1:]:
             script += f'claude --dangerously-skip-permissions --output-format stream-json --verbose -p --continue "{cmd}"\n'
-        print(script)
+        # print(script.replace(GITHUB_TOKEN, "XXXX"))
         script_filename = f"{ARTIFACTS_DIR}/{run_id}_script.sh"
         with open(script_filename, 'w') as f:
             f.write(script)
-        cmd = f"""docker run -v {repo_dir}:/repo -v {script_filename}:/claude_cmds.sh --workdir /repo --env-file /secrets/.env.aws claude_code bash /claude_cmds.sh"""
+        cmd = f"""docker run -v {repo_dir}:/repo -v {script_filename}:/claude_cmds.sh --network appnet --workdir /repo --env-file /secrets/.env.aws claude_code bash /claude_cmds.sh"""
     elif config.agent_provider == 'codex':
         prompt = config.prompts[0]
         cmd = f"""docker run -t -v {repo_dir}:/repo --workdir /repo -e OPENAI_API_KEY codex "{prompt}" """

@@ -40,7 +40,7 @@ def _load_task_definition_from_str(yaml_content):
         raise ValueError(f"Error loading task definition: {str(e)}")
 
 
-def create_config_from_task_definition(task_def, repos=None, search_query=None, dry=None, skip_pr=None, reviewers=None, draft=None) -> RunAgentConfig:
+def create_config_from_task_definition(task_def, repos=None, search_query=None, dry=None, skip_pr=None, reviewers=None, draft=True) -> RunAgentConfig:
     """
     Create a RunAgentConfig from a task definition dictionary.
     

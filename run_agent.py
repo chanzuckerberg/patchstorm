@@ -95,7 +95,11 @@ def create_config_from_task_definition(task_def, repos=None, search_query=None, 
     # Command line flags take precedence over task definition
     use_dry = dry if dry is not None else task_def.get('dry', False)
     use_skip_pr = skip_pr if skip_pr is not None else task_def.get('skip_pr', False)
-    use_draft = draft if draft is not None else task_def.get('draft', False)
+    # Check if draft exists in task_def, otherwise default to False
+    task_draft = False
+    if 'draft' in task_def:
+        task_draft = task_def['draft']
+    use_draft = draft if draft is not None else task_draft
     
     # Handle reviewers
     reviewers_set = set()

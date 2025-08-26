@@ -1,6 +1,6 @@
 # PatchStorm
 
-This project is under active development. We need contributors! 
+This project is currently under active development. We need contributors! 
 If you would like to contribute, please contact @wontonst
 ## Features
 

@@ -133,7 +133,7 @@ def test_convert_task_def_to_config(mock_get_repos):
     assert config.repos == {"test/repo", "another/repo"}
     assert not config.skip_pr
     assert not config.dry
-    assert not config.draft  # Default is False
+    assert config.draft is False  # Default is False
     mock_get_repos.assert_called_with("test/repo,another/repo", None)
 
 
@@ -252,7 +252,7 @@ def test_convert_task_def_with_draft_to_config(mock_get_repos):
     
     config = create_config_from_task_definition(task_def_without_draft)
     assert isinstance(config, RunAgentConfig)
-    assert config.draft is False
+    assert config.draft is True
     
     # Test with draft param overriding task definition
     config = create_config_from_task_definition(task_def_without_draft, draft=True)

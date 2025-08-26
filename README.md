@@ -1,11 +1,11 @@
 # PatchStorm
 
+PatchStorm is a lightweight service for scaling out changes across many repositories. 
+It uses coding agents, GitHub search, and distributed task processing to streamline everything from
+version bumps to complex refactors.
+
 This project is under active development. We need contributors! 
 If you would like to contribute, please contact @wontonst
-## Features
-
-- Claude code/codex for agentic coding
-- Celery + Redis for distributed task processing
 
 # Setup
 
@@ -31,45 +31,17 @@ e.g.
 custom-aws-credentials-cmd --profile my-profile > .aws.env
 ```
 
-## Running with Docker Compose
+# Getting started
 
-The project includes a Makefile with helpful commands for managing the Docker Compose stack:
-
-```bash
-# Start the stack
-make up
-
-# Wait for a minute or so for the build_claud_img container to finish building the claude runner image within the stack
-
-# You can view its progress and other logs using
-make logs
-# To only view logs for the worker you can us
-make logs-worker
-
-# Shell into the worker instance
-make sh
-
-# Stop the stack
-make down
-
-# Restart services without rebuilding
-make restart
-
-# Rebuild and restart
-make rebuild
-
-# Full cleanup
-make clean
-```
-
-## Tasks
+Once you have completed setup, run `make up` to bring up all the PatchStorm services.
+Wait for a minute or so for internal images to finish building.
 
 The simplest way to issue a coding prompt to an agentic AI that will clone down a repo, perform changes, and commit any changes:
 
+![command example](./demo.gif)
+
 ```
-docker compose exec worker python run_agent.py --prompt "PROMPT HERE" --commit-msg "COMMIT MESSAGE HERE"
-# Or pass in a prompt using a file
-cat prompt.txt | docker compose exec -T worker python run_agent.py --commit-msg "COMMIT MESSAGE HERE"
+docker compose exec worker python run_agent.py --prompt "PROMPT HERE" --commit-msg "COMMIT MESSAGE HERE" --repos org/repo1
 # See available options with:
 docker compose exec worker python run_agent.py --help
 ```
@@ -101,6 +73,37 @@ When you have written a task definition, you can use this shortcut:
 ./shortcut.sh [path to task definition] --commit-msg "Upgrade Fogg to latest version" --dry
 ```
 
+
+## Make Targets
+
+The project includes a Makefile with helpful commands for managing the Docker Compose stack:
+
+```bash
+# Start the stack
+make up
+# Wait for a minute or so for the build_claud_img container to finish building the claude runner image within the stack
+
+# You can view its progress and other logs using
+make logs
+# To only view logs for the worker you can use
+make logs-worker
+
+# Shell into the worker instance
+make sh
+
+# Stop the stack
+make down
+
+# Restart services without rebuilding
+make restart
+
+# Rebuild and restart
+make rebuild
+
+# Full cleanup
+make clean
+```
+
 ## Monitoring and Management
 
 DO NOT NOT USE THIS OUTSIDE OF YOUR LAPTOP.
@@ -108,11 +111,14 @@ This system has NOT been hardened (yet).
 
 - Flower for monitoring Celery tasks. View using `make openflower`
 
+## Architecture
 
-## Code of Conduct
+![architecture diagram](./PatchStorm.png)
+
+# Code of Conduct
 
 This project adheres to the Contributor Covenant [code of conduct](https://github.com/chanzuckerberg/.github/blob/master/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [opensource@chanzuckerberg.com](mailto:opensource@chanzuckerberg.com).
 
-## Reporting Security Issues
+# Reporting Security Issues
 
 If you believe you have found a security issue, please responsibly disclose by contacting us at [security@chanzuckerberg.com](mailto:security@chanzuckerberg.com).

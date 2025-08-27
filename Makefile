@@ -20,6 +20,8 @@ up: .env.github
 	@echo "Starting Docker Compose stack..."
 	@GITHUB_TOKEN=$(shell gh auth token) docker-compose up -d
 	@echo "Services are running in the background."
+	@echo "Checking if patchstorm is fully operational..."
+	@docker-compose exec -T worker bash /app/check_patchstorm_status.sh
 	@echo "Use 'make logs' to view logs."
 
 # Stop the Docker Compose stack

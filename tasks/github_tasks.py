@@ -50,7 +50,7 @@ claude --dangerously-skip-permissions --output-format stream-json --verbose -p "
         script_filename = f"{ARTIFACTS_DIR}/{run_id}_script.sh"
         with open(script_filename, 'w') as f:
             f.write(script)
-        cmd = f"""docker run -v {repo_dir}:/repo -v {script_filename}:/claude_cmds.sh --workdir /repo --env-file /secrets/.env.aws claude_code bash /claude_cmds.sh"""
+        cmd = f"""docker run -v {repo_dir}:/repo -v {script_filename}:/claude_cmds.sh -e ANTHROPIC_API_KEY --workdir /repo --env-file /secrets/.env.custom claude_code bash /claude_cmds.sh"""
     elif config.agent_provider == 'codex':
         prompt = config.prompts[0]
         cmd = f"""docker run -t -v {repo_dir}:/repo --workdir /repo -e OPENAI_API_KEY codex "{prompt}" """

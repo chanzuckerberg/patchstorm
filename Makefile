@@ -15,7 +15,7 @@ help:
 up: .env.github
 	@if [ -f ./custom_setup.sh ]; then bash custom_setup.sh; fi
 	mkdir -p artifacts
-	touch .env.aws
+	touch .env.custom
 	@gh auth status
 	@echo "Starting Docker Compose stack..."
 	@GITHUB_TOKEN=$(shell gh auth token) docker-compose up -d

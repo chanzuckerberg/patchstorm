@@ -1,6 +1,7 @@
 .DS_Store
 artifacts/
 custom_setup.sh
+.env.custom
 .env.secret
 .env.secrets
 .env.aws

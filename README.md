@@ -17,18 +17,20 @@ If you would like to contribute, please contact @wontonst
   * the organization is used to conduct code searches
 * Add credentials for your LLM provider
   * Codex: add `OPENAI_API_KEY=[your key]` to `.env.configs`
-  * Claude Code: Enable claude 3.7 and 3.5 in your AWS account's Bedrock settings, then add your AWS credentials to `.env.aws`
+  * Claude Code - two options
+    1. Enable claude 3.7 and 3.5 in your AWS account's Bedrock settings, then add your AWS credentials to `.env.custom`
+    2. Add ANTHROPIC_API_KEY=[your key] to `.env.configs`
 
 ## Dynamic credentials
 
 If you use short-lived credentials (e.g. from AWS SSO), you can create a script in the root directory called
-`custom_setup.sh`. This script will get called by the Makefile.
+`custom_setup.sh` that will write key value pairs to .env.custom. This script will get called by the Makefile.
 
 e.g.
 
 ```
 #!/bin/bash
-custom-aws-credentials-cmd --profile my-profile > .aws.env
+fetch-aws-credentials --profile my-profile > .env.custom
 ```
 
 # Getting started

@@ -39,6 +39,11 @@ properties:
         description: List of repositories to run against.
         items:
           type: string
+      exclude:
+        type: array
+        description: List of repositories to exclude from the results.
+        items:
+          type: string
       search_query:
         type: string
         description: GitHub search query to find repositories.

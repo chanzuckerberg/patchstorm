@@ -1,6 +1,6 @@
 import os
 import time
-from github import Github
+from github import Github, UnknownObjectException
 from github import Auth
 from typing import Dict, List
 
@@ -48,7 +48,9 @@ def get_repo_prs(repo_name: str) -> List:
     """
     auth = Auth.Token(GITHUB_TOKEN)
     g = Github(auth=auth)
-    repo = g.get_repo(repo_name)
-
+    try:
+        repo = g.get_repo(repo_name)
+    except UnknownObjectException as e:
+        raise RuntimeError(f"Repository {repo_name} not found or inaccessible.") from e
     # has attributes like number, title, url, draft
     return repo.get_pulls(state='open')

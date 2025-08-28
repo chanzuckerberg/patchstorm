@@ -51,6 +51,25 @@ def test_valid_task_definition_with_repos_new_format():
     """)
 
 
+def test_valid_task_definition_with_repos_exclude():
+    """Test that a task definition with repos exclude is validated correctly."""
+    assert True == validate_task_definition_yaml("""
+    agent: 
+        provider: codex
+    commit:
+        message: "Test commit message"
+    prompts:
+        - prompt: "Test prompt"
+    repos:
+        include:
+            - chanzuckerberg/patchstorm
+            - chanzuckerberg/fogg
+        exclude:
+            - chanzuckerberg/some-other-repo
+        search_query: '"set up working directory by installing dependencies" 0.92.2'
+    """)
+
+
 def test_valid_task_definition_with_draft():
     """Test that a task definition with draft is validated correctly."""
     assert True == validate_task_definition_yaml("""
@@ -232,6 +251,85 @@ def test_convert_task_def_with_combined_repos_and_top_level_search_query(mock_ge
     expected_repos = {"chanzuckerberg/patchstorm", "chanzuckerberg/fogg", "found/repo1", "found/repo2"}
     assert config.repos == expected_repos
     mock_get_repos.assert_called_with(None, "path:.github language:YAML")
+
+
+@mock.patch('run_agent.get_repos')
+def test_convert_task_def_with_repos_exclude_to_config(mock_get_repos):
+    """Test that repos exclude functionality works correctly."""
+    # Setup mock to return test repos including some that should be excluded
+    mock_repos_from_query = {"found/repo1", "found/repo2", "exclude/this", "exclude/this-one-too"}
+    
+    def mock_get_repos_side_effect(repos, search_query):
+        if search_query:
+            return mock_repos_from_query
+        return set()
+    
+    mock_get_repos.side_effect = mock_get_repos_side_effect
+    
+    # Test with include, exclude, and search_query
+    task_def = {
+        "agent": {
+            "provider": "codex"
+        },
+        "commit": {
+            "message": "Test commit message"
+        },
+        "prompts": [
+            {
+                "prompt": "Test prompt"
+            }
+        ],
+        "repos": {
+            "include": [
+                "include/repo1",
+                "include/repo2",
+                "exclude/this"  # This one should be excluded
+            ],
+            "exclude": [
+                "exclude/this",
+                "exclude/this-one-too"  # This should be excluded from search_query results
+            ],
+            "search_query": "test search query"
+        }
+    }
+    
+    config = create_config_from_task_definition(task_def)
+    assert isinstance(config, RunAgentConfig)
+    
+    # Should include repos from include and search_query, but not the excluded ones
+    # exclude/this should be excluded from include list
+    # exclude/this-one-too should be excluded from search_query results
+    expected_repos = {"include/repo1", "include/repo2", "found/repo1", "found/repo2"}
+    assert config.repos == expected_repos
+    
+    # Test with only exclude (no search_query)
+    task_def = {
+        "agent": {
+            "provider": "codex"
+        },
+        "commit": {
+            "message": "Test commit message"
+        },
+        "prompts": [
+            {
+                "prompt": "Test prompt"
+            }
+        ],
+        "repos": {
+            "include": [
+                "include/repo1",
+                "include/repo2",
+                "exclude/this"
+            ],
+            "exclude": [
+                "exclude/this"
+            ]
+        }
+    }
+    
+    config = create_config_from_task_definition(task_def)
+    assert isinstance(config, RunAgentConfig)
+    assert config.repos == {"include/repo1", "include/repo2"}
 
 
 @mock.patch('run_agent.get_repos')

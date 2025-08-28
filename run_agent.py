@@ -77,6 +77,7 @@ def create_config_from_task_definition(task_def, repos=None, search_query=None, 
 
     # Extract repos configuration from object format
     task_repos_list = None
+    task_repos_exclude = None
     task_repos_search_query = None
     
     # Handle repos object format
@@ -87,6 +88,7 @@ def create_config_from_task_definition(task_def, repos=None, search_query=None, 
         
         # Extract repositories from the object
         task_repos_list = task_repos_obj.get('include')
+        task_repos_exclude = task_repos_obj.get('exclude')
         task_repos_search_query = task_repos_obj.get('search_query')
 
     # Check for conflicting search queries
@@ -114,6 +116,13 @@ def create_config_from_task_definition(task_def, repos=None, search_query=None, 
         # Ensure we have at least one source of repositories
         if not repo_set:
             raise ValueError("You must specify either repos.include, repos.search_query, or search_query in the task definition or as a command line argument.")
+        
+        # Remove excluded repositories if specified
+        if task_repos_exclude:
+            # Convert to set for efficient exclusion
+            exclude_set = set(task_repos_exclude)
+            # Remove excluded repos
+            repo_set = repo_set - exclude_set
     
     # Command line flags take precedence over task definition
     use_dry = dry if dry is not None else task_def.get('dry', False)

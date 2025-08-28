@@ -18,7 +18,7 @@ up: .env.github
 	touch .env.custom
 	@gh auth status
 	@echo "Starting Docker Compose stack..."
-	@GITHUB_TOKEN=$(shell gh auth token) docker-compose up -d
+	@GITHUB_TOKEN=$(shell gh auth token) docker-compose up --build -d
 	@echo "Services are running in the background."
 	@echo "Use 'make logs' to view logs."
 
@@ -51,6 +51,9 @@ clean:
 
 sh:
 	docker-compose exec worker /bin/bash
+
+cc:
+	docker compose exec worker xenon -e '*/test_*.py' -i artifacts --max-absolute C /app
 
 # View logs from all services
 logs:

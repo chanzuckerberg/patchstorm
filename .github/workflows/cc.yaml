@@ -1,0 +1,23 @@
+name: cyclomatic_complexity
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  run-tests:
+    runs-on: ARM64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: install dependencies
+        run: |
+          pip3 install --user pipenv
+          /home/runner/.local/bin/pipenv install
+      - name: run check
+        run: |
+          /home/runner/.local/bin/pipenv run xenon -e '*/test_*.py' -i artifacts --max-absolute C .

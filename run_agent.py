@@ -40,6 +40,54 @@ def _load_task_definition_from_str(yaml_content):
         raise ValueError(f"Error loading task definition: {str(e)}")
 
 
+def _validate_task_definition(task_def):
+    """Validate the task definition has all required fields."""
+    if 'agent' not in task_def or 'provider' not in task_def['agent']:
+        raise ValueError("Task definition must include agent.provider")
+        
+    if 'commit' not in task_def or 'message' not in task_def['commit']:
+        raise ValueError("Task definition must include commit.message")
+        
+    if 'prompts' not in task_def or not task_def['prompts'] or 'prompt' not in task_def['prompts'][0]:
+        raise ValueError("Task definition must include at least one prompt")
+
+
+def _get_repos_from_config(task_def, repos=None, search_query=None):
+    """Determine the repositories to use based on task definition and command line args."""
+    # Check if repos or search_query are defined in the task definition
+    task_repos = task_def.get('repos')
+    task_search_query = task_def.get('search_query')
+    
+    # Check if both repos and search_query are provided from command line
+    if repos and search_query:
+        raise NotImplementedError("Cannot specify both 'repos' and 'search_query' together")
+    
+    # If both are defined in the task definition, raise error
+    if task_repos and task_search_query:
+        raise NotImplementedError("Cannot specify both 'repos' and 'search_query' in the task definition")
+    
+    # Command line parameters take precedence over task definition
+    if repos:
+        return get_repos(repos, None)
+    elif search_query:
+        return get_repos(None, search_query)
+    elif task_repos:
+        return set(task_repos)
+    elif task_search_query:
+        return get_repos(None, task_search_query)
+    
+    raise ValueError("You must specify either repos or search_query in the task definition or as a command line argument.")
+
+
+def _get_reviewers(task_def, reviewers=None):
+    """Get the set of reviewers from task definition and command line args."""
+    if reviewers:
+        return {r.strip() for r in reviewers.split(',')}
+    elif 'reviewers' in task_def:
+        return set(task_def['reviewers'])
+    return set()
+
+
 def create_config_from_task_definition(task_def, repos=None, search_query=None, dry=None, skip_pr=None, reviewers=None, draft=None) -> RunAgentConfig:
     """
     Create a RunAgentConfig from a task definition dictionary.
@@ -59,50 +107,15 @@ def create_config_from_task_definition(task_def, repos=None, search_query=None, 
     Raises:
         ValueError: If the task definition is missing required fields.
     """
-    if 'agent' not in task_def or 'provider' not in task_def['agent']:
-        raise ValueError("Task definition must include agent.provider")
-        
-    if 'commit' not in task_def or 'message' not in task_def['commit']:
-        raise ValueError("Task definition must include commit.message")
-        
-    if 'prompts' not in task_def or not task_def['prompts'] or 'prompt' not in task_def['prompts'][0]:
-        raise ValueError("Task definition must include at least one prompt")
+    _validate_task_definition(task_def)
     
-    # Check if repos or search_query are defined in the task definition
-    task_repos = task_def.get('repos')
-    task_search_query = task_def.get('search_query')
-    
-    # Check if both repos and search_query are provided from command line
-    if repos and search_query:
-        raise NotImplementedError("Cannot specify both 'repos' and 'search_query' together")
-    
-    # If both are defined in the task definition, raise error
-    if task_repos and task_search_query:
-        raise NotImplementedError("Cannot specify both 'repos' and 'search_query' in the task definition")
-    
-    # Command line parameters take precedence over task definition
-    if repos:
-        repo_set = get_repos(repos, None)
-    elif search_query:
-        repo_set = get_repos(None, search_query)
-    elif task_repos:
-        repo_set = set(task_repos)
-    elif task_search_query:
-        repo_set = get_repos(None, task_search_query)
-    else:
-        raise ValueError("You must specify either repos or search_query in the task definition or as a command line argument.")
+    repo_set = _get_repos_from_config(task_def, repos, search_query)
+    reviewers_set = _get_reviewers(task_def, reviewers)
     
     # Command line flags take precedence over task definition
     use_dry = dry if dry is not None else task_def.get('dry', False)
     use_skip_pr = skip_pr if skip_pr is not None else task_def.get('skip_pr', False)
     use_draft = draft if draft is not None else task_def.get('draft', False)
-    
-    # Handle reviewers
-    reviewers_set = set()
-    if reviewers:
-        reviewers_set = {r.strip() for r in reviewers.split(',')}
-    elif 'reviewers' in task_def:
-        reviewers_set = set(task_def['reviewers'])
     
     # Extract all prompts from the task definition
     prompts = [p['prompt'] for p in task_def['prompts'] if 'prompt' in p]

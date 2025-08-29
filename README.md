@@ -61,7 +61,12 @@ agent:
   provider: claude_code|codex
 commit:
   message: "commit message, eg chore: upgrade to fogg 0.92.27"
-search_query: '"set up working directory by installing dependencies"'
+repos:
+  include:
+    - "chanzuckerberg/fogg"
+  exclude:
+    - "chanzuckerberg/some-other-repo"
+  search_query: '"set up working directory by installing dependencies"'
 prompts:
   - prompt: "update the version string in .fogg-version to 0.92.27. If you edit the version string, make sure the makefile setup target is downloading the correct fogg version."
   - prompt: "in the root fogg.yml file, if there are any self references to the repo using a git url pinned to the main branch instead of a relative path, change it to use a relative path instead."
@@ -75,6 +80,8 @@ When you have written a task definition, you can use this shortcut:
 ./shortcut.sh [path to task definition] --commit-msg "Upgrade Fogg to latest version" --dry
 ```
 
+The order of operations for the repos block is the union of the include list and the search query,
+minus any repos in the exclude list.
 
 ## Make Targets
 

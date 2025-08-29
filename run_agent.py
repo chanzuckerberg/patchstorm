@@ -69,28 +69,51 @@ def create_config_from_task_definition(task_def, repos=None, search_query=None, 
         raise ValueError("Task definition must include at least one prompt")
     
     # Check if repos or search_query are defined in the task definition
-    task_repos = task_def.get('repos')
+    task_repos_obj = task_def.get('repos')
     task_search_query = task_def.get('search_query')
     
-    # Check if both repos and search_query are provided from command line
-    if repos and search_query:
-        raise NotImplementedError("Cannot specify both 'repos' and 'search_query' together")
+    # Both repos and search_query can now be provided together
+    # They will be combined in the get_repos function
+
+    # Extract repos configuration from object format
+    task_repos_list = None
+    task_repos_search_query = None
     
-    # If both are defined in the task definition, raise error
-    if task_repos and task_search_query:
-        raise NotImplementedError("Cannot specify both 'repos' and 'search_query' in the task definition")
+    # Handle repos object format
+    if task_repos_obj is not None:
+        # Ensure repos is an object
+        if not isinstance(task_repos_obj, dict):
+            raise ValueError("'repos' must be an object with 'include' and/or 'search_query' properties")
+        
+        # Extract repositories from the object
+        task_repos_list = task_repos_obj.get('include')
+        task_repos_search_query = task_repos_obj.get('search_query')
+
+    # Check for conflicting search queries
+    if task_repos_search_query and task_search_query:
+        raise NotImplementedError("Cannot specify both 'repos.search_query' and top-level 'search_query' in the task definition")
+    
+    # If both repos.include and repos.search_query are provided, that's fine - they're combined
     
     # Command line parameters take precedence over task definition
     if repos:
         repo_set = get_repos(repos, None)
     elif search_query:
         repo_set = get_repos(None, search_query)
-    elif task_repos:
-        repo_set = set(task_repos)
-    elif task_search_query:
-        repo_set = get_repos(None, task_search_query)
     else:
-        raise ValueError("You must specify either repos or search_query in the task definition or as a command line argument.")
+        # Initialize repo_set with repos from include if available
+        repo_set = set(task_repos_list) if task_repos_list else set()
+        
+        # Add repos from search query if available
+        effective_search_query = task_repos_search_query or task_search_query
+        if effective_search_query:
+            search_results = get_repos(None, effective_search_query)
+            # Union the sets to combine repositories from both sources
+            repo_set = repo_set.union(search_results)
+            
+        # Ensure we have at least one source of repositories
+        if not repo_set:
+            raise ValueError("You must specify either repos.include, repos.search_query, or search_query in the task definition or as a command line argument.")
     
     # Command line flags take precedence over task definition
     use_dry = dry if dry is not None else task_def.get('dry', False)

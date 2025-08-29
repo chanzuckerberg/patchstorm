@@ -31,13 +31,20 @@ properties:
         prompt:
           type: string
   repos:
-    type: array
-    description: List of repositories to run against.
-    items:
-      type: string
+    type: object
+    description: Repository configuration for running tasks.
+    properties:
+      include:
+        type: array
+        description: List of repositories to run against.
+        items:
+          type: string
+      search_query:
+        type: string
+        description: GitHub search query to find repositories.
   search_query:
     type: string
-    description: GitHub search query to find repositories.
+    description: GitHub search query to find repositories (legacy format, prefer repos.search_query).
   draft:
     type: boolean
     description: Whether to create pull requests as drafts. Defaults to false if not specified.

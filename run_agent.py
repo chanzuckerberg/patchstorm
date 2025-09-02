@@ -40,6 +40,128 @@ def _load_task_definition_from_str(yaml_content):
         raise ValueError(f"Error loading task definition: {str(e)}")
 
 
+def _validate_task_definition(task_def):
+    """
+    Validate that the task definition contains all required fields.
+    
+    Args:
+        task_def (dict): The task definition dictionary.
+        
+    Raises:
+        ValueError: If the task definition is missing required fields.
+    """
+    if 'agent' not in task_def or 'provider' not in task_def['agent']:
+        raise ValueError("Task definition must include agent.provider")
+        
+    if 'commit' not in task_def or 'message' not in task_def['commit']:
+        raise ValueError("Task definition must include commit.message")
+        
+    if 'prompts' not in task_def or not task_def['prompts'] or 'prompt' not in task_def['prompts'][0]:
+        raise ValueError("Task definition must include at least one prompt")
+
+
+def _extract_repos_config(task_repos_obj, task_search_query):
+    """
+    Extract repository configuration from the task definition repos object.
+    
+    Args:
+        task_repos_obj (dict or None): The repos object from the task definition.
+        task_search_query (str or None): The top-level search query from the task definition.
+        
+    Returns:
+        tuple: (task_repos_list, task_repos_exclude, task_repos_search_query)
+        
+    Raises:
+        ValueError: If the repos object is invalid.
+        NotImplementedError: If conflicting search queries are specified.
+    """
+    task_repos_list = None
+    task_repos_exclude = None
+    task_repos_search_query = None
+    
+    # Handle repos object format
+    if task_repos_obj is not None:
+        # Ensure repos is an object
+        if not isinstance(task_repos_obj, dict):
+            raise ValueError("'repos' must be an object with 'include' and/or 'search_query' properties")
+        
+        # Extract repositories from the object
+        task_repos_list = task_repos_obj.get('include')
+        task_repos_exclude = task_repos_obj.get('exclude')
+        task_repos_search_query = task_repos_obj.get('search_query')
+
+    # Check for conflicting search queries
+    if task_repos_search_query and task_search_query:
+        raise NotImplementedError("Cannot specify both 'repos.search_query' and top-level 'search_query' in the task definition")
+        
+    return task_repos_list, task_repos_exclude, task_repos_search_query
+
+
+def _get_repo_set(repos, search_query, task_repos_list, task_repos_exclude, task_repos_search_query, task_search_query):
+    """
+    Determine the set of repositories to process based on command line args and task definition.
+    
+    Args:
+        repos (str or None): Command line repos parameter.
+        search_query (str or None): Command line search query parameter.
+        task_repos_list (list or None): List of repos from the task definition.
+        task_repos_exclude (list or None): List of repos to exclude from the task definition.
+        task_repos_search_query (str or None): Search query from the repos object.
+        task_search_query (str or None): Top-level search query from the task definition.
+        
+    Returns:
+        set: The set of repositories to process.
+        
+    Raises:
+        ValueError: If no repositories are specified.
+    """
+    # Command line parameters take precedence over task definition
+    if repos:
+        return get_repos(repos, None)
+    elif search_query:
+        return get_repos(None, search_query)
+    else:
+        # Initialize repo_set with repos from include if available
+        repo_set = set(task_repos_list) if task_repos_list else set()
+        
+        # Add repos from search query if available
+        effective_search_query = task_repos_search_query or task_search_query
+        if effective_search_query:
+            search_results = get_repos(None, effective_search_query)
+            # Union the sets to combine repositories from both sources
+            repo_set = repo_set.union(search_results)
+            
+        # Ensure we have at least one source of repositories
+        if not repo_set:
+            raise ValueError("You must specify either repos.include, repos.search_query, or search_query in the task definition or as a command line argument.")
+        
+        # Remove excluded repositories if specified
+        if task_repos_exclude:
+            exclude_set = set(task_repos_exclude)
+            repo_set = repo_set - exclude_set
+            
+        return repo_set
+
+
+def _get_reviewers_set(reviewers, task_def):
+    """
+    Determine the set of reviewers based on command line args and task definition.
+    
+    Args:
+        reviewers (str or None): Command line reviewers parameter.
+        task_def (dict): The task definition dictionary.
+        
+    Returns:
+        set: The set of reviewers.
+    """
+    reviewers_set = set()
+    if reviewers:
+        reviewers_set = {r.strip() for r in reviewers.split(',')}
+    elif 'reviewers' in task_def:
+        reviewers_set = set(task_def['reviewers'])
+    return reviewers_set
+
+
 def create_config_from_task_definition(task_def, repos=None, search_query=None, dry=None, skip_pr=None, reviewers=None, draft=None) -> RunAgentConfig:
     """
     Create a RunAgentConfig from a task definition dictionary.
@@ -59,82 +181,25 @@ def create_config_from_task_definition(task_def, repos=None, search_query=None, 
     Raises:
         ValueError: If the task definition is missing required fields.
     """
-    if 'agent' not in task_def or 'provider' not in task_def['agent']:
-        raise ValueError("Task definition must include agent.provider")
-        
-    if 'commit' not in task_def or 'message' not in task_def['commit']:
-        raise ValueError("Task definition must include commit.message")
-        
-    if 'prompts' not in task_def or not task_def['prompts'] or 'prompt' not in task_def['prompts'][0]:
-        raise ValueError("Task definition must include at least one prompt")
+    # Validate task definition
+    _validate_task_definition(task_def)
     
-    # Check if repos or search_query are defined in the task definition
+    # Extract repos configuration
     task_repos_obj = task_def.get('repos')
     task_search_query = task_def.get('search_query')
     
-    # Both repos and search_query can now be provided together
-    # They will be combined in the get_repos function
-
-    # Extract repos configuration from object format
-    task_repos_list = None
-    task_repos_exclude = None
-    task_repos_search_query = None
+    task_repos_list, task_repos_exclude, task_repos_search_query = _extract_repos_config(task_repos_obj, task_search_query)
     
-    # Handle repos object format
-    if task_repos_obj is not None:
-        # Ensure repos is an object
-        if not isinstance(task_repos_obj, dict):
-            raise ValueError("'repos' must be an object with 'include' and/or 'search_query' properties")
-        
-        # Extract repositories from the object
-        task_repos_list = task_repos_obj.get('include')
-        task_repos_exclude = task_repos_obj.get('exclude')
-        task_repos_search_query = task_repos_obj.get('search_query')
-
-    # Check for conflicting search queries
-    if task_repos_search_query and task_search_query:
-        raise NotImplementedError("Cannot specify both 'repos.search_query' and top-level 'search_query' in the task definition")
-    
-    # If both repos.include and repos.search_query are provided, that's fine - they're combined
-    
-    # Command line parameters take precedence over task definition
-    if repos:
-        repo_set = get_repos(repos, None)
-    elif search_query:
-        repo_set = get_repos(None, search_query)
-    else:
-        # Initialize repo_set with repos from include if available
-        repo_set = set(task_repos_list) if task_repos_list else set()
-        
-        # Add repos from search query if available
-        effective_search_query = task_repos_search_query or task_search_query
-        if effective_search_query:
-            search_results = get_repos(None, effective_search_query)
-            # Union the sets to combine repositories from both sources
-            repo_set = repo_set.union(search_results)
-            
-        # Ensure we have at least one source of repositories
-        if not repo_set:
-            raise ValueError("You must specify either repos.include, repos.search_query, or search_query in the task definition or as a command line argument.")
-        
-        # Remove excluded repositories if specified
-        if task_repos_exclude:
-            # Convert to set for efficient exclusion
-            exclude_set = set(task_repos_exclude)
-            # Remove excluded repos
-            repo_set = repo_set - exclude_set
+    # Determine repository set
+    repo_set = _get_repo_set(repos, search_query, task_repos_list, task_repos_exclude, task_repos_search_query, task_search_query)
     
     # Command line flags take precedence over task definition
     use_dry = dry if dry is not None else task_def.get('dry', False)
     use_skip_pr = skip_pr if skip_pr is not None else task_def.get('skip_pr', False)
     use_draft = draft if draft is not None else task_def.get('draft', False)
     
-    # Handle reviewers
-    reviewers_set = set()
-    if reviewers:
-        reviewers_set = {r.strip() for r in reviewers.split(',')}
-    elif 'reviewers' in task_def:
-        reviewers_set = set(task_def['reviewers'])
+    # Get reviewers
+    reviewers_set = _get_reviewers_set(reviewers, task_def)
     
     # Extract all prompts from the task definition
     prompts = [p['prompt'] for p in task_def['prompts'] if 'prompt' in p]

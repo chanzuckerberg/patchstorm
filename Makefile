@@ -1,4 +1,4 @@
-.PHONY: up down restart rebuild clean logs test run-github-demo test-new-tasks artifacts help
+.PHONY: up down restart build clean logs test run-github-demo test-new-tasks artifacts help
 
 # Default target
 help:
@@ -6,7 +6,7 @@ help:
 	@echo "  make up             - Start the Docker Compose stack"
 	@echo "  make down           - Stop the Docker Compose stack"
 	@echo "  make restart        - Restart the worker service"
-	@echo "  make rebuild        - Rebuild and restart the Docker Compose stack"
+	@echo "  make build          - Build patchstorm docker image"
 	@echo "  make clean          - Stop and remove containers, networks, and volumes"
 	@echo "  make logs           - View logs from all services"
 	@echo "  make logs-worker    - View logs from the worker service"
@@ -35,12 +35,9 @@ restart: .env.github
 	docker-compose restart worker
 	@echo "Services restarted."
 
-# Rebuild and restart the Docker Compose stack
-rebuild: .env.github
-	@echo "Rebuilding Docker Compose stack..."
+# Build docker image
+build: .env.github
 	docker-compose build
-	$(MAKE) up
-	@echo "Services rebuilt and restarted."
 
 # Stop and remove containers, networks, and volumes
 clean:

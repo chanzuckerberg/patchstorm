@@ -21,9 +21,9 @@ RUN echo \
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends docker-ce-cli
 
-
-COPY Pipfile Pipfile.lock ./
-RUN pip install pipenv && pipenv install --system --deploy
+ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
+COPY pyproject.toml uv.lock ./
+RUN pip install uv && uv sync --frozen
 
 # Add a non-root user to run the worker
 RUN useradd -ms /bin/bash celeryuser

@@ -106,11 +106,11 @@ make down
 # Restart services without rebuilding
 make restart
 
-# Rebuild and restart
-make rebuild
-
 # Full cleanup
 make clean
+
+# Build image
+make build
 ```
 
 ## Monitoring and Management

@@ -19,8 +19,8 @@ jobs:
           python-version: '3.11'
       - name: install dependencies
         run: |
-          pip3 install --user pipenv
-          /home/runner/.local/bin/pipenv install
+          pip3 install --user uv
+          /home/runner/.local/bin/uv sync --frozen
       - name: run check
         run: |
-          /home/runner/.local/bin/pipenv run xenon -e '*/test_*.py' -i artifacts --max-absolute C .
+          /home/runner/.local/bin/uv run xenon -e '*/test_*.py' -i artifacts --max-absolute C .

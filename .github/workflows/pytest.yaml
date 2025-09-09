@@ -16,8 +16,8 @@ jobs:
           python-version: '3.11'
       - name: install dependencies
         run: |
-          pip3 install --user pipenv
-          /home/runner/.local/bin/pipenv install
+          pip3 install --user uv
+          /home/runner/.local/bin/uv sync --frozen
       - name: run tests
         run: |
-          TEST_MODE=true /home/runner/.local/bin/pipenv run pytest
+          TEST_MODE=true /home/runner/.local/bin/uv run pytest

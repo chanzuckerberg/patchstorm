@@ -1,0 +1,47 @@
+version: '3'
+
+networks:
+  appnet:
+    name: appnet
+
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    volumes:
+      - ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: patchstorm_mcp
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - OLLAMA_HOST=ollama:11434
+      - GITHUB_TOKEN_FILE=/run/secrets/github_token
+    volumes:
+      - ./:/app
+    networks:
+      - appnet
+    restart: unless-stopped
+    depends_on:
+      - ollama
+    secrets:
+      - github_token
+
+volumes:
+  ollama:
+    name: ollama
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN

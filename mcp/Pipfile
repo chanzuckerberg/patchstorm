@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+mcp = {extras = ["cli"], version = "*"}
+uvicorn = "*"
+requests = "*"
+starlette = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"

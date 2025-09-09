@@ -113,6 +113,16 @@ make clean
 make build
 ```
 
+## MCP Server
+
+PatchStorm comes with a MCP server for more efficiently pulling GitHub workflow logs. You can also use this MCP server
+as a part of your development flow. To do this, run `make up`.
+
+If you're using claude code, you can run this command to connect the MCP server:
+```
+claude mcp add --transport http patchstorm http://localhost:8000/mcp/
+```
+
 ## Monitoring and Management
 
 DO NOT NOT USE THIS OUTSIDE OF YOUR LAPTOP.

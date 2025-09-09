@@ -9,6 +9,7 @@ from tasks.github_tasks import (
 from patchstorm.run_agent_config import RunAgentConfig
 from patchstorm.task_definition import validate_task_definition_yaml, SCHEMA
 from patchstorm.github_utils import get_repos, get_repo_prs
+from patchstorm.exceptions import PatchStormParserError
 import yaml
 
 
@@ -21,7 +22,7 @@ def load_task_definition(file_path):
         
     Returns:
         dict: The validated task definition.
-        
+
     Raises:
         ValueError: If the file cannot be read or is invalid.
     """
@@ -31,6 +32,9 @@ def load_task_definition(file_path):
 
 
 def _load_task_definition_from_str(yaml_content):
+    if not yaml_content:
+        return None
+        
     try:
         if validate_task_definition_yaml(yaml_content):
             return yaml.safe_load(yaml_content)
@@ -231,7 +235,7 @@ def get_prompt_from_args(args):
             prompt = sys.stdin.read()
 
     if not prompt:
-        raise ValueError("You must pass a prompt with --prompt or via stdin")
+        raise PatchStormParserError("You must pass a prompt with --prompt or via stdin")
         
     return prompt
 
@@ -239,7 +243,7 @@ def get_prompt_from_args(args):
 def create_config_from_args(args):
     """Create a RunAgentConfig object from command line arguments."""
     if not args.skip_pr and not args.commit_msg:
-        raise ValueError("You must provide a commit message with --commit-msg")
+        raise PatchStormParserError("You must provide a commit message with --commit-msg")
     
     repos = get_repos(args.repos, args.search_query)
     reviewers = set()
@@ -258,36 +262,14 @@ def create_config_from_args(args):
     )
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--task-definition', type=str,
-                        help='Path to a YAML file containing task definition')
-    parser.add_argument('--commit-msg', type=str,
-                        help='The commit message for the operation.')
-    parser.add_argument('--prompt', type=str,
-                        help='The prompt to give the llm.')
-    parser.add_argument('--repos', type=str,
-                        help='comma separated list of repos to run against, e.g. mygithuborg/myrepo,mygithuborg/myotherrepo')
-    parser.add_argument('--search-query', type=str, default=None,
-                        help="run on all repos that have this github code search query, eg --repo-query 'path:.github language:YAML tibdex/github-app-token'")
-    parser.add_argument("--dry", action="store_true", help="Dry run, do not actually run the task")
-    parser.add_argument("--skip-pr", action="store_true", help="Skip pushing and creating a pull request")
-    parser.add_argument("--draft", action="store_true", help="Create pull request as draft. Defaults to false.")
-    parser.add_argument("--agent-provider", choices=("codex", "claude_code"), default="codex",
-                        help="Which agent to use for the task. Defaults to codex.")
-    parser.add_argument("--reviewers", type=str, default="",
-                        help="Comma separated list of GitHub usernames to add as reviewers to the PR.")
-    parser.set_defaults(draft=None)
-
-    args = parser.parse_args()
-    
+def main(args):
     try:
         if args.task_definition:
             task_def = load_task_definition(args.task_definition)
-            
+
             config = create_config_from_task_definition(
-                task_def, 
-                repos=args.repos, 
+                task_def,
+                repos=args.repos,
                 search_query=args.search_query,
                 dry=args.dry,
                 skip_pr=args.skip_pr,
@@ -297,9 +279,13 @@ if __name__ == "__main__":
         elif args.prompt:
             config = create_config_from_args(args)
         else:
-            task_def = _load_task_definition_from_str(get_task_definition_from_stdin())
+            stdin_content = get_task_definition_from_stdin()
+            if not stdin_content:
+                raise PatchStormParserError("You must provide a task definition file or a prompt.")
+
+            task_def = _load_task_definition_from_str(stdin_content)
             if not task_def:
-                parser.error("You must provide a task definition file or a prompt.")
+                raise PatchStormParserError("You must provide a task definition file or a prompt.")
             config = create_config_from_task_definition(
                 task_def,
                 repos=args.repos,
@@ -310,7 +296,7 @@ if __name__ == "__main__":
                 draft=args.draft
             )
     except ValueError as e:
-        parser.error(str(e))
+        raise PatchStormParserError(str(e))
 
     if config.dry:
         print(f"would run with prompts: {config.prompts}")
@@ -338,3 +324,32 @@ if __name__ == "__main__":
         clone_and_run_prompt.delay(repo, config.to_json())
 
     print("Tasks submitted. Run make logs-worker to check agent logs")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--task-definition', type=str,
+                        help='Path to a YAML file containing task definition')
+    parser.add_argument('--commit-msg', type=str,
+                        help='The commit message for the operation.')
+    parser.add_argument('--prompt', type=str,
+                        help='The prompt to give the llm.')
+    parser.add_argument('--repos', type=str,
+                        help='comma separated list of repos to run against, e.g. mygithuborg/myrepo,mygithuborg/myotherrepo')
+    parser.add_argument('--search-query', type=str, default=None,
+                        help="run on all repos that have this github code search query, eg --repo-query 'path:.github language:YAML tibdex/github-app-token'")
+    parser.add_argument("--dry", action="store_true", help="Dry run, do not actually run the task")
+    parser.add_argument("--skip-pr", action="store_true", help="Skip pushing and creating a pull request")
+    parser.add_argument("--draft", action="store_true", help="Create pull request as draft. Defaults to false.")
+    parser.add_argument("--agent-provider", choices=("codex", "claude_code"), default="codex",
+                        help="Which agent to use for the task. Defaults to codex.")
+    parser.add_argument("--reviewers", type=str, default="",
+                        help="Comma separated list of GitHub usernames to add as reviewers to the PR.")
+    parser.set_defaults(draft=None)
+
+    args = parser.parse_args()
+
+    try:
+        main(args)
+    except PatchStormParserError as e:
+        parser.error(str(e))

@@ -86,15 +86,23 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
 USER node
 
 ################ CUSTOM CODE BELOW ##############
+# Copy claude-code CLI settings from settings.json into the user config directory
+USER root
+COPY settings.json /home/node/.claude/settings.json
+RUN chown node:node /home/node/.claude/settings.json
+USER node
 
+# AWS Bedrock authentication environment variables (pass at runtime or build)
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+ARG AWS_SESSION_TOKEN
+ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+ENV AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
 
-RUN claude config add allowedTools Bash
-RUN claude config add allowedTools FileWriteTool
-RUN claude config add allowedTools Edit
-RUN claude config add allowedTools FileEditTool
-RUN claude config set --global env '{"CLAUDE_CODE_USE_BEDROCK": "true", "ANTHROPIC_MODEL": "us.anthropic.claude-3-7-sonnet-20250219-v1:0"}'
-
+# Ensure AWS region is set for AWS SDKs (modify as needed)
 ENV AWS_REGION=us-west-2
+ENV AWS_DEFAULT_REGION=${AWS_REGION}
 ENV CLAUDE_CODE_USE_BEDROCK=1
 
 #ENTRYPOINT ["claude", "--allowedTools", "Bash,Edit,Replace", "--output-format", "stream-json", "--verbose", "-p"]

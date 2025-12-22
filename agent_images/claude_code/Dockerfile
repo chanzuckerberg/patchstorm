@@ -88,14 +88,16 @@ USER node
 ################ CUSTOM CODE BELOW ##############
 
 
-RUN claude config add allowedTools Bash
-RUN claude config add allowedTools FileWriteTool
-RUN claude config add allowedTools Edit
-RUN claude config add allowedTools FileEditTool
-RUN claude config set --global env '{"CLAUDE_CODE_USE_BEDROCK": "true", "ANTHROPIC_MODEL": "us.anthropic.claude-3-7-sonnet-20250219-v1:0"}'
 
-ENV AWS_REGION=us-west-2
-ENV CLAUDE_CODE_USE_BEDROCK=1
+COPY --chown=node:node settings.json /home/node/.claude/settings.json
+
+# AWS Bedrock authentication environment variables (set at runtime)
+ENV AWS_ACCESS_KEY_ID= \
+    AWS_SECRET_ACCESS_KEY= \
+    AWS_SESSION_TOKEN= \
+    AWS_REGION=us-west-2 \
+    AWS_DEFAULT_REGION=us-west-2 \
+    CLAUDE_CODE_USE_BEDROCK=1
 
 #ENTRYPOINT ["claude", "--allowedTools", "Bash,Edit,Replace", "--output-format", "stream-json", "--verbose", "-p"]
 

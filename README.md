@@ -1,6 +1,3 @@
-> [!NOTE]
-> This repo is archived and now fully maintained at https://github.com/wontonst/patchstorm
-
 # PatchStorm
 
 PatchStorm is a lightweight service for scaling out changes across many repositories. 

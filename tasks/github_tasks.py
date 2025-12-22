@@ -130,16 +130,27 @@ def clone_and_run_prompt(repo_name, config):
         run_bash_cmd(f"git config --global user.name '{GIT_NAME}'")
         run_bash_cmd(f"git -C {repo_dir} commit -m '{config.commit_msg}'")
         run_bash_cmd(f"git -C {repo_dir} push origin {branch}")
-        project = ''
-        if GITHUB_PROJECT:
-            project = f" --project '{GITHUB_PROJECT}'"
-        
         # Add --draft flag only if config.draft is True
         draft_flag = "--draft" if config.draft else ""
-        gh_cmd = f"""cd {repo_dir} && GITHUB_TOKEN={GITHUB_TOKEN} gh pr create --head  bot/{run_id} --title "{config.commit_msg}" {draft_flag} {project} --body '{body}' """
+
+        # Create the pull request without project flag (classic projects deprecated)
+        gh_pr_cmd = f"""cd {repo_dir} && GITHUB_TOKEN={GITHUB_TOKEN} gh pr create --head bot/{run_id} --title "{config.commit_msg}" {draft_flag} --body '{body}'"""
         if config.reviewers:
-            gh_cmd += f" --reviewer {','.join(config.reviewers)}"
-        run_bash_cmd(gh_cmd)
+            gh_pr_cmd += f" --reviewer {','.join(config.reviewers)}"
+        # Capture PR creation output to get the PR URL
+        pr_output, pr_exit_code = run_bash_cmd(gh_pr_cmd)
+        pr_url = pr_output.strip()
+
+        # If using GitHub Projects (beta), add the PR to the project
+        if GITHUB_PROJECT:
+            # Expect GITHUB_PROJECT in OWNER/PROJECT_NUMBER format, e.g., myorg/123
+            try:
+                project_owner, project_number = GITHUB_PROJECT.split('/', 1)
+            except ValueError:
+                raise ValueError(f"Invalid GITHUB_PROJECT format: {GITHUB_PROJECT}. Expected OWNER/PROJECT_NUMBER.")
+            # Add the PR to the project using the new project CLI
+            project_cmd = f"cd {repo_dir} && GITHUB_TOKEN={GITHUB_TOKEN} gh project item-add {pr_url} --project {project_owner}/{project_number}"
+            run_bash_cmd(project_cmd)
     else:
         print("No changes found")
     print(f"Completed run {run_id}")

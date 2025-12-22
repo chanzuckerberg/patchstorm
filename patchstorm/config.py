@@ -4,7 +4,7 @@ import os
 if os.environ.get('TEST_MODE', '').lower() in ('1', 'true'):
     GIT_NAME = 'test'
     GIT_EMAIL = 'test'
-    GITHUB_PROJECT = 'test'
+    GITHUB_PROJECT = 'test/2'
     GITHUB_TOKEN = 'test'
     GITHUB_ORGANIZATION = 'test'
     ARTIFACTS_DIR = '/tmp/artifacts'

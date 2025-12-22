@@ -86,17 +86,16 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
 USER node
 
 ################ CUSTOM CODE BELOW ##############
+# Copy the new Claude Code settings
+COPY settings.json /home/node/.claude/settings.json
 
-
-RUN claude config add allowedTools Bash
-RUN claude config add allowedTools FileWriteTool
-RUN claude config add allowedTools Edit
-RUN claude config add allowedTools FileEditTool
-RUN claude config set --global env '{"CLAUDE_CODE_USE_BEDROCK": "true", "ANTHROPIC_MODEL": "us.anthropic.claude-3-7-sonnet-20250219-v1:0"}'
-
+# Environment variables for Bedrock integration
 ENV AWS_REGION=us-west-2
-ENV CLAUDE_CODE_USE_BEDROCK=1
+ENV ANTHROPIC_PROVIDER=bedrock
+ENV ANTHROPIC_MODEL=us.anthropic.claude-3-7-sonnet-20250219-v1:0
+ENV CLAUDE_CODE_USE_BEDROCK=true
 
-#ENTRYPOINT ["claude", "--allowedTools", "Bash,Edit,Replace", "--output-format", "stream-json", "--verbose", "-p"]
+# Default entrypoint: permissions and model configured via settings.json
+ENTRYPOINT ["claude", "--output-format", "stream-json", "--verbose", "-p"]
 
 

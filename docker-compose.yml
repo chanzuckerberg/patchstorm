@@ -52,6 +52,10 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    env_file:
+      - .env.custom
+      - .env.github
+      - .env.configs
     secrets:
       - github_token
     environment:
